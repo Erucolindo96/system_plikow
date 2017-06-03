@@ -4,8 +4,10 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += main.c \
-    dysk.c
+    dysk.c \
+    dysk_private.c
 
 HEADERS += \
-    dysk.h
+    dysk.h \
+    dysk_private.h
 
