@@ -9,6 +9,7 @@
 
 #define ROZMIAR_BLOKU 2048
 #define MAX_NAZWA 62
+#define NAZWA_DYSKU "virtualDisk.vdc"
 
 //wartości zwracane przez metody
 
@@ -62,12 +63,17 @@
   * -Sprawdzamy, czy zmieści się na dysku - jeśli nie zwracamy błąd
   * -Szukamy pierwszego wolnego bloku na dysku i zapisujemy początek pliku, jego nazwę i odpowiednie flagi
   * -Dokopi nie zapiszemy całego pliku - szukamy kolejnego wolnego bloku, łączymy go z poprzednim i ładujemy tak fragment pliku
+  * -Zapisz stan wirtualnego dysku do jego pliku
   *
   * 5.Kopiuj plik z wirtualnego dysku do linuxa
   * -Szukamy deskryptora z nazwą naszego pliku
   * -Jeśli go znaleźliśmy, to otwieramy w linuxie taki plik/lub go tworzymy
   * -Kopiujemy do niego po kolei dane z dysku
   *
+  * 6.Usuń plik z wirtualnego dysku
+  * -Znajdź blok początkowy pliku - jeśli nie ma, to znaczy ze nie ma takiego pliku
+  * -Kolejne deskryptory pliku ustaw jako puste
+  * -Zapisz stan wirtualnego dysku do jego pliku
   *
   */
 
@@ -108,14 +114,19 @@ int otworzDysk(Dysk* dysk);
 int usunDysk(Dysk* dysk);
 */
 
-Dysk* stworzDysk(const char* nazwa, unsigned int rozmiar);
-Dysk* otworzDysk(const char* nazwa);
-int zamknijDysk(Dysk* otwarty_dysk, const char* nazwa_dysku);
+Dysk* stworzDysk(unsigned int rozmiar);
+Dysk* otworzDysk();
+int zamknijDysk(Dysk* otwarty_dysk);
+int usunDysk(Dysk *dysk);
 
 unsigned int iloscWolnejPamieci(Dysk* dysk);
 
 int zapiszNaWirtualnymDysku(Dysk* dysk, const char *nazwa_pliku);
 int zapiszNaRzeczywistymDysku(Dysk* dysk, const char *nazwa_pliku);
+int usunPlikZWirtualnegoDysku(Dysk *dysk, const char *nazwa_pliku);
+
+int wypiszZawartoscDysku(Dysk *dysk);
+int wyswietlMapePamieci(Dysk *dysk);
 
 #endif // DYSK_H
 

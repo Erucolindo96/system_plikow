@@ -1,25 +1,41 @@
 ﻿#include <stdio.h>
 #include"dysk.h"
-
+/*
+#define GOOD 0
+#define BAD 1
+#define FILE_ERROR 2
+#define ALLOC_ERROR 3
+#define READ_ERROR 4
+#define WRITE_ERROR 5
+#define NO_MEMORY 6
+#define NOT_FOUND 7
+*/
 int main(void)
 {
     printf("Hello World!\n");
     int wynik;
-    Dysk* testowy_dysk;
+    Dysk* dysk;
+    dysk = stworzDysk(6);
+    printf("Utworzono dysk. Rozmiar: %d\n", iloscWolnejPamieci(dysk));
 
-    testowy_dysk = stworzDysk("testowy3.vdc", 5 );//powinien miec 5KB
-    printf("Adres Dysku: %d\n", testowy_dysk);
-    printf("Wolna pamięć na dysku: %d\n", iloscWolnejPamieci(testowy_dysk));
+    wynik = zapiszNaWirtualnymDysku(dysk, "nowy.txt");
+    wynik = zapiszNaWirtualnymDysku(dysk, "drugi.txt");
 
-    //pobieramy plik z linuxa
-    wynik = zapiszNaWirtualnymDysku(testowy_dysk, "nowy.txt");
-    printf("Pobrano plik z linuxa. Wynik: %d\n", wynik);
+    wynik = wypiszZawartoscDysku(dysk);
+    wynik = wyswietlMapePamieci(dysk);
 
-    wynik = zapiszNaRzeczywistymDysku(testowy_dysk, "nowy.txt");
-    printf("Zapisano plik na linuxa. Wynik: %d\n", wynik);
+    wynik = usunPlikZWirtualnegoDysku(dysk, "nowy.txt");
 
-    wynik = zamknijDysk(testowy_dysk, "testowy2.vdc");
-    printf("Wynik usuwania: %d\n", wynik);
+    wynik = wypiszZawartoscDysku(dysk);
+    wynik = wyswietlMapePamieci(dysk);
+
+    wynik = zapiszNaRzeczywistymDysku(dysk, "nowy.txt");
+    wynik = zapiszNaRzeczywistymDysku(dysk, "drugi.txt");
+
+    wynik = wypiszZawartoscDysku(dysk);
+    wynik = wyswietlMapePamieci(dysk);
+    usunDysk(dysk);
+    printf("Koniec\n");
 
     return 0;
 }

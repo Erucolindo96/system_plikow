@@ -3,23 +3,9 @@
 
 
 
-/*
-//private - deklaracje
-int czytajDeskryptory(Dysk *dysk, FILE *deskryptor_pliku);//dysk musi mieć zaallokowaną pamięć
-int czytajBloki(Dysk *dysk, FILE *deskryptor_pliku);//dysk musi mieć zaallokowana pamięć
-
-int zapiszDeskryptory(Dysk *dysk, FILE *deskryptor_pliku);
-int zapiszBloki(Dysk *dysk, FILE (deskryptor_pliku);
-
-int otworzDyskZPliku(Dysk *dysk);//zmienna dysk musi mieć zaallokowaną pamięć, aby móc wczytać plik z wirtualnym dyskiem
-int allokujPamiecDyskowi(Dysk *dysk, unsigned int ilosc_blokow);
-int zapiszDyskDoPliku(Dysk* dysk);
-*/
-
-
 //public
 
-Dysk* stworzDysk(const char* nazwa, unsigned int rozmiar)
+Dysk* stworzDysk(unsigned int rozmiar)
 {
     Dysk* tworzony = malloc(sizeof(Dysk));
     if(tworzony == NULL)
@@ -34,7 +20,7 @@ Dysk* stworzDysk(const char* nazwa, unsigned int rozmiar)
         return NULL;
     }
     //zapisujemy, na razie pusty, dysk w pliku
-    if(zapiszDyskDoPliku(tworzony, nazwa) == BAD)
+    if(zapiszDyskDoPliku(tworzony, NAZWA_DYSKU) == BAD)
     {
         deallokujPamiecDyskowi(tworzony);
         free(tworzony);
@@ -42,13 +28,13 @@ Dysk* stworzDysk(const char* nazwa, unsigned int rozmiar)
     }
     return tworzony;
 }
-Dysk* otworzDysk(const char* nazwa)
+Dysk* otworzDysk()
 {
     Dysk* otwierany = malloc(sizeof(Dysk));
     if(otwierany == NULL)
         return NULL;
     //wczytujemy dysk z pliku
-    if(otworzDyskZPliku(otwierany, nazwa) == BAD)
+    if(otworzDyskZPliku(otwierany, NAZWA_DYSKU) == BAD)
     {
         free(otwierany);
         return NULL;
@@ -56,9 +42,9 @@ Dysk* otworzDysk(const char* nazwa)
     //wszystko poszło dobrze
     return otwierany;
 }
-int zamknijDysk(Dysk* otwarty_dysk, const char* nazwa_dysku)
+int zamknijDysk(Dysk* otwarty_dysk)
 {
-    int wynik=zapiszDyskDoPliku(otwarty_dysk, nazwa_dysku);
+    int wynik=zapiszDyskDoPliku(otwarty_dysk, NAZWA_DYSKU);
     //zapisujemy dysk do pliku o podanej nazwie
     if(wynik != GOOD)
     {
@@ -70,6 +56,21 @@ int zamknijDysk(Dysk* otwarty_dysk, const char* nazwa_dysku)
     free(otwarty_dysk);
     return GOOD;
 
+}
+
+int usunDysk(Dysk *dysk)
+{
+    //konwersja nazwy pliku z dyskiem na polecenie shella
+    char polecenie_kasujace[128];
+    polecenie_kasujace[0] = 'r';
+    polecenie_kasujace[1] = 'm';
+    polecenie_kasujace[2] = ' ';
+    strncpy(polecenie_kasujace+3, NAZWA_DYSKU, 125);
+
+    system(polecenie_kasujace);
+    deallokujPamiecDyskowi(dysk);
+    free(dysk);
+    return GOOD;
 }
 
 unsigned int iloscWolnejPamieci(Dysk* dysk)
@@ -96,8 +97,8 @@ int zapiszNaWirtualnymDysku(Dysk *dysk, const char *nazwa_pliku)
 
     ladujPlikDoDysku(dysk, plik_na_linuxie, nazwa_pliku, rozmiar_pliku.__pos);
     fclose(plik_na_linuxie);
-
-
+    //zapisujemy stan dysku po wczytaniu pliku
+    zapiszDyskDoPliku(dysk, NAZWA_DYSKU);
     return GOOD;
 }
 
@@ -128,7 +129,61 @@ int zapiszNaRzeczywistymDysku(Dysk* dysk, const char *nazwa_pliku)
     return GOOD;
 }
 
+int usunPlikZWirtualnegoDysku(Dysk *dysk, const char *nazwa_pliku)
+{
+    int indeks_pliku = znajdzPlikNaDysku(dysk, nazwa_pliku);
+    if(indeks_pliku < 0)
+        return NOT_FOUND;
+    int nastepny_indeks = -1;
+    do
+    {
+        nastepny_indeks = dysk->tablica_deskryptorow[indeks_pliku].nastepny;
+        ustawParametryBloku(dysk, indeks_pliku, FALSE, FALSE, 0, -1, NULL);//usuwamy blok
+        indeks_pliku = nastepny_indeks;
 
+    }while(indeks_pliku >= 0);
+    //plik usunięty - zapisujemy stan dysku do pliku
+    int wynik = zapiszDyskDoPliku(dysk, NAZWA_DYSKU);
+    return wynik;
+}
+
+int wypiszZawartoscDysku(Dysk *dysk)
+{
+    printf("Pliki dysku wirtualnego:\n");
+    size_t i;
+    for(i=0; i<dysk->ilosc_blokow; ++i)
+    {
+        if(dysk->tablica_deskryptorow[i].jestPoczatkiemPliku)
+        {
+            printf("%s \n", dysk->tablica_deskryptorow[i].nazwa_pliku);
+        }
+    }
+    return GOOD;
+}
+
+int wyswietlMapePamieci(Dysk *dysk)
+{
+    int i;
+    printf("Blok pamięci ma długość %d bajtów\n", ROZMIAR_BLOKU);
+    for(i=0; i<dysk->ilosc_blokow; ++i)
+    {
+        printf("Zawartość bloku %d: ", i);
+        if(dysk->tablica_deskryptorow[i].jestZajety)
+        {
+            printf("Zajęty,zajęta pamięć: %d, ", dysk->tablica_deskryptorow[i].zajeta_pamiec);
+            if(dysk->tablica_deskryptorow[i].jestPoczatkiemPliku)
+                printf("Początek pliku: %s\n", dysk->tablica_deskryptorow[i].nazwa_pliku);
+            else
+                if(dysk->tablica_deskryptorow[i].nastepny >= 0)
+                    printf("część pliku, następny blok pliku: %d\n", dysk->tablica_deskryptorow[i].nastepny);
+                else
+                    printf("koniec pliku\n");
+        }
+        else
+            printf("Wolny \n");
+    }
+    return GOOD;
+}
 
 
 
