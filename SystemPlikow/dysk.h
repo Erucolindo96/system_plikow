@@ -23,6 +23,7 @@
 #define WRITE_ERROR 5
 #define NO_MEMORY 6
 #define NOT_FOUND 7
+#define FILE_EXIST 8
 
 #define TRUE 1
 #define FALSE 0

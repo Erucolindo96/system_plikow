@@ -210,6 +210,7 @@ int ladujPlikDoDysku(Dysk *dysk, FILE *plik,const char *nazwa_pliku, size_t rozm
         else
         {   //najpierw poprzedniemu ustawiamy nastepnika
             nastepny_wolny_blok = znajdzNastepnyWolnyBlok(dysk);
+            //printf("Następny wolny blok: %d, poprzedni blok:%d\n", nastepny_wolny_blok, poprzedni_blok);
             dysk->tablica_deskryptorow[poprzedni_blok].nastepny = nastepny_wolny_blok;
             //i dopiero teraz ustawiamy parametry nowego
             ustawParametryBloku(dysk, nastepny_wolny_blok, TRUE, FALSE, pobrane,-1, NULL);
@@ -218,6 +219,7 @@ int ladujPlikDoDysku(Dysk *dysk, FILE *plik,const char *nazwa_pliku, size_t rozm
             {
                 dysk->tablica_blokow[nastepny_wolny_blok].zawartosc[i] = bufor[i];
             }
+            poprzedni_blok = nastepny_wolny_blok;
             zaladowane_dane+=pobrane;
         }
     }

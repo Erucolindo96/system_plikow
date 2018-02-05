@@ -12,7 +12,10 @@ Dysk* stworzDysk(unsigned int rozmiar)
         return NULL;
     //wyliczamy ilość bloków
     rozmiar = rozmiar<<10;//zamieniamy KB na B
-    int ilosc_blokow = rozmiar/ROZMIAR_BLOKU;
+    size_t ilosc_blokow = rozmiar/ROZMIAR_BLOKU;
+    if(ilosc_blokow*ROZMIAR_BLOKU < rozmiar) //jeśli dalej nie starcza miejsca
+        ++ilosc_blokow;
+
     tworzony->ilosc_blokow = ilosc_blokow;
     if(allokujPamiecDyskowi(tworzony, ilosc_blokow) == BAD)
     {//jeśli wystąpiły błędy przy allokacji - zwalniamy pamięć dysku
@@ -34,7 +37,7 @@ Dysk* otworzDysk()
     if(otwierany == NULL)
         return NULL;
     //wczytujemy dysk z pliku
-    if(otworzDyskZPliku(otwierany, NAZWA_DYSKU) == BAD)
+    if(otworzDyskZPliku(otwierany, NAZWA_DYSKU) != GOOD)
     {
         free(otwierany);
         return NULL;
@@ -80,7 +83,12 @@ unsigned int iloscWolnejPamieci(Dysk* dysk)
 
 int zapiszNaWirtualnymDysku(Dysk *dysk, const char *nazwa_pliku)
 {
-    //char bufor[ROZMIAR_BLOKU];
+    //sprawdz czy plik juz istnieje na dysku
+    int indeks_z = znajdzPlikNaDysku(dysk, nazwa_pliku);
+    //printf("Indeks znalezionego: %d\n", indeks_z);
+    if(indeks_z >= 0)
+        return FILE_EXIST;
+
     fpos_t rozmiar_pliku;
     int wynik =rozmiarPliku(nazwa_pliku, &rozmiar_pliku);
     if(wynik != GOOD)
@@ -163,16 +171,18 @@ int wypiszZawartoscDysku(Dysk *dysk)
 
 int wyswietlMapePamieci(Dysk *dysk)
 {
-    int i;
+    int i, wolne_bloki = 0, zajeta_pamiec = 0;
     printf("Blok pamięci ma długość %d bajtów\n", ROZMIAR_BLOKU);
     for(i=0; i<dysk->ilosc_blokow; ++i)
     {
         printf("Zawartość bloku %d: ", i);
         if(dysk->tablica_deskryptorow[i].jestZajety)
         {
+            zajeta_pamiec+=dysk->tablica_deskryptorow[i].zajeta_pamiec;
+
             printf("Zajęty,zajęta pamięć: %d, ", dysk->tablica_deskryptorow[i].zajeta_pamiec);
             if(dysk->tablica_deskryptorow[i].jestPoczatkiemPliku)
-                printf("Początek pliku: %s\n", dysk->tablica_deskryptorow[i].nazwa_pliku);
+                printf("Początek pliku o nazwie: %s, następny blok pliku: %d\n", dysk->tablica_deskryptorow[i].nazwa_pliku, dysk->tablica_deskryptorow[i].nastepny);
             else
                 if(dysk->tablica_deskryptorow[i].nastepny >= 0)
                     printf("część pliku, następny blok pliku: %d\n", dysk->tablica_deskryptorow[i].nastepny);
@@ -180,8 +190,19 @@ int wyswietlMapePamieci(Dysk *dysk)
                     printf("koniec pliku\n");
         }
         else
+        {
+            ++wolne_bloki;
             printf("Wolny \n");
+        }
     }
+
+    printf("Wolna pamięć: %d\n", wolne_bloki*ROZMIAR_BLOKU);
+    printf("Zajęta pamięć: %d\n", (dysk->ilosc_blokow-wolne_bloki) * ROZMIAR_BLOKU);
+    printf("Zajęta pamięć efektywna: %d\n", zajeta_pamiec);
+
+    double wykorzystanie_d = zajeta_pamiec;
+    wykorzystanie_d = wykorzystanie_d/(ROZMIAR_BLOKU*dysk->ilosc_blokow );
+    printf("Wykorzystanie dysku: %f procent \n",wykorzystanie_d );
     return GOOD;
 }
 
